@@ -270,23 +270,6 @@ function modify_nginx_domain(){
   judge "Nginx 域名 修改"
 }
 
-
-  if [[ -z ${local_ipv4} && -n ${local_ipv6} ]]; then
-    signedcert=$(xray tls cert -domain="$local_ipv6" -name="$local_ipv6" -org="$local_ipv6" -expire=87600h)
-  else
-    signedcert=$(xray tls cert -domain="$local_ipv4" -name="$local_ipv4" -org="$local_ipv4" -expire=87600h)
-  fi
-  echo $signedcert | jq '.certificate[]' | sed 's/\"//g' | tee $cert_dir/self_signed_cert.pem
-  echo $signedcert | jq '.key[]' | sed 's/\"//g' >$cert_dir/self_signed_key.pem
-  openssl x509 -in $cert_dir/self_signed_cert.pem -noout || (print_error "生成自签名证书失败" && exit 1)
-  print_ok "生成自签名证书成功"
-  chown nobody.$cert_group $cert_dir/self_signed_cert.pem
-  chown nobody.$cert_group $cert_dir/self_signed_key.pem
-}
-
-
-
-
 #docker安装
 function docker_install(){
   if ! command -v docker >/dev/null 2>&1; then
@@ -343,10 +326,6 @@ function configure_nginx() {
   docker run --name chatgpt-nginx -v ${nginx_conf}:/etc/nginx/nginx.conf -d nginx
   judge "Nginx 启动"
 }
-
-
-
-
 
 function restart_nginx() {
   docker restart nginx
