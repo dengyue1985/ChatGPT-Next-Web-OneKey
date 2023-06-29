@@ -3,7 +3,7 @@
 #====================================================
 #	System Request:Debian 9+/Ubuntu 18.04+/Centos 7+
 #	Author:	dengyue
-#	Dscription: ChatGPT Web onekey Management
+#	Dscription: ChatGPT Web Management
 #	email: dengyue1985@hotmail.com
 #====================================================
 
@@ -27,7 +27,7 @@ OK="${Green}[OK]${Font}"
 ERROR="${Red}[ERROR]${Font}"
 
 # 变量
-script_version="1.0"
+script_version="1.0.1"
 github_branch="main"
 nginx_conf="/etc/nginx/nginx.conf"
 VERSION=$(echo "${VERSION}" | awk -F "[()]" '{print $2}')
@@ -35,11 +35,9 @@ VERSION=$(echo "${VERSION}" | awk -F "[()]" '{print $2}')
 function print_ok() {
   echo -e "${OK} ${Blue} $1 ${Font}"
 }
-
 function print_error() {
   echo -e "${ERROR} ${RedBG} $1 ${Font}"
 }
-
 function is_root() {
   if [[ 0 == "$UID" ]]; then
     print_ok "当前用户是 root 用户，开始安装流程"
@@ -136,14 +134,6 @@ function dependency_install() {
   ${INS} systemd
   judge "安装/升级 systemd"
 
-  # Nginx 后置 无需编译 不再需要
-  #  if [[ "${ID}" == "centos" ||  "${ID}" == "ol" ]]; then
-  #    yum -y groupinstall "Development tools"
-  #  else
-  #    ${INS} build-essential
-  #  fi
-  #  judge "编译工具包 安装"
-
   if [[ "${ID}" == "centos" ]]; then
     ${INS} pcre pcre-devel zlib-devel epel-release openssl openssl-devel
   elif [[ "${ID}" == "ol" ]]; then
@@ -154,11 +144,8 @@ function dependency_install() {
   else
     ${INS} libpcre3 libpcre3-dev zlib1g-dev openssl libssl-dev
   fi
-
   ${INS} jq
-
 }
-
 function basic_optimization() {
   # 最大文件打开数
   sed -i '/^\*\ *soft\ *nofile\ *[[:digit:]]*/d' /etc/security/limits.conf
@@ -172,7 +159,6 @@ function basic_optimization() {
     setenforce 0
   fi
 }
-
 function domain_check() {
   domain_ip=$(curl -sm8 ipget.net/?ip="$1")
   print_ok "正在获取 IP 地址信息，请耐心等待"
@@ -365,7 +351,7 @@ menu() {
     update_script
     ;;
   1)
-    install_xray
+    install_web
     ;;
   11)
     modify_nginx_port
