@@ -27,7 +27,7 @@ OK="${Green}[OK]${Font}"
 ERROR="${Red}[ERROR]${Font}"
 
 # 变量
-script_version="1.0.1"
+script_version="1.0.2"
 github_branch="main"
 nginx_conf="/etc/nginx/nginx.conf"
 VERSION=$(echo "${VERSION}" | awk -F "[()]" '{print $2}')
