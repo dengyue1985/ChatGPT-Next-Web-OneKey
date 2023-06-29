@@ -218,13 +218,13 @@ function port_exist_check() {
 }
 
 function update_script() {
-  ol_version=$(curl -L -s https://raw.githubusercontent.com/dengyue1985/ChatGPT-Web-OneKey/${github_branch}/install.sh | grep "script_version=" | head -1 | awk -F '=|"' '{print $3}')
+  ol_version=$(curl -L -s https://raw.githubusercontent.com/dengyue1985/ChatGPT-Web-OneKey/${github_branch}/chatgpt-web-onkey-install.sh | grep "script_version=" | head -1 | awk -F '=|"' '{print $3}')
   if [[ "$script_version" != "$(echo -e "$script_version\n$ol_version" | sort -rV | head -1)" ]]; then
     print_ok "存在新版本，是否更新 [Y/N]?"
     read -r update_confirm
     case $update_confirm in
     [yY][eE][sS] | [yY])
-      wget -N --no-check-certificate https://raw.githubusercontent.com/dengyue1985/ChatGPT-Web-OneKey/${github_branch}/install.sh
+      wget -N --no-check-certificate https://raw.githubusercontent.com/dengyue1985/ChatGPT-Web-OneKey/${github_branch}/chatgpt-web-onkey-install.sh
       print_ok "更新完成"
       print_ok "您可以通过 bash $0 执行本程序"
       exit 0
