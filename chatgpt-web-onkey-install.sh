@@ -29,7 +29,7 @@ ERROR="${Red}[ERROR]${Font}"
 # 变量
 script_version="1.0.2"
 github_branch="main"
-nginx_conf="/etc/nginx/nginx.conf"
+nginx_conf_dir="/etc/docker_nginx"
 VERSION=$(echo "${VERSION}" | awk -F "[()]" '{print $2}')
 
 function print_ok() {
@@ -64,23 +64,19 @@ function system_check() {
     print_ok "当前系统为 Centos ${VERSION_ID} ${VERSION}"
     INS="yum install -y"
     UNINS="yum remove"
-    ${INS} curl
   elif [[ "${ID}" == "ol" ]]; then
     print_ok "当前系统为 Oracle Linux ${VERSION_ID} ${VERSION}"
     INS="yum install -y"
-    UNINS="yum remove"
-    ${INS} curl	
+    UNINS="yum remove"	
   elif [[ "${ID}" == "debian" && ${VERSION_ID} -ge 9 ]]; then
     print_ok "当前系统为 Debian ${VERSION_ID} ${VERSION}"
     INS="apt install -y"
     UNINS="apt remove"
-    ${INS} curl
     apt update
   elif [[ "${ID}" == "ubuntu" && $(echo "${VERSION_ID}" | cut -d '.' -f1) -ge 18 ]]; then
     print_ok "当前系统为 Ubuntu ${VERSION_ID} ${UBUNTU_CODENAME}"
     INS="apt install -y"
     UNINS="apt remove"
-    ${INS} curl
     apt update
   else
     print_error "当前系统为 ${ID} ${VERSION_ID} 不在支持的系统列表内"
@@ -90,9 +86,6 @@ function system_check() {
   if [[ $(grep "nogroup" /etc/group) ]]; then
     cert_group="nogroup"
   fi
-
-  $INS dbus
-
   # 关闭各类防火墙
   systemctl stop firewalld
   systemctl disable firewalld
@@ -101,11 +94,9 @@ function system_check() {
   systemctl stop ufw
   systemctl disable ufw
 }
-
-
 function dependency_install() {
-  ${INS} lsof tar
-  judge "安装 lsof tar"
+  ${INS} lsof
+  judge "安装 lsof"
 
   if [[ "${ID}" == "centos" || "${ID}" == "ol" ]]; then
     ${INS} crontabs
@@ -120,12 +111,8 @@ function dependency_install() {
   else
     touch /var/spool/cron/crontabs/root && chmod 600 /var/spool/cron/crontabs/root
     systemctl start cron && systemctl enable cron
-
   fi
   judge "crontab 自启动配置 "
-
-  ${INS} unzip
-  judge "安装 unzip"
 
   ${INS} curl
   judge "安装 curl"
@@ -133,18 +120,6 @@ function dependency_install() {
   # upgrade systemd
   ${INS} systemd
   judge "安装/升级 systemd"
-
-  if [[ "${ID}" == "centos" ]]; then
-    ${INS} pcre pcre-devel zlib-devel epel-release openssl openssl-devel
-  elif [[ "${ID}" == "ol" ]]; then
-    ${INS} pcre pcre-devel zlib-devel openssl openssl-devel
-    # Oracle Linux 不同日期版本的 VERSION_ID 比较乱 直接暴力处理。如出现问题或有更好的方案，请提交 Issue。
-    yum-config-manager --enable ol7_developer_EPEL >/dev/null 2>&1
-    yum-config-manager --enable ol8_developer_EPEL >/dev/null 2>&1
-  else
-    ${INS} libpcre3 libpcre3-dev zlib1g-dev openssl libssl-dev
-  fi
-  ${INS} jq
 }
 function basic_optimization() {
   # 最大文件打开数
@@ -244,15 +219,15 @@ function modify_nginx_port() {
     exit 1
   fi
   port_exist_check $PORT
-  sed -i "/listen 80;/c \\\tlinsten ${PORT};" ${nginx_conf}
-  sed -i "/proxy_set_header Host \$host/c \\\t  proxy_set_header Host \$host:${PORT};" ${nginx_conf}
+  sed -i "/listen 80;/c \\\tlisten ${PORT};" ${nginx_conf_dir}/nginx.conf
+  sed -i "/proxy_set_header Host \$host/c \\\t  proxy_set_header Host \$host:${PORT};" ${nginx_conf_dir}/nginx.conf
   judge "Nginx 端口 修改"
 }
 
 function modify_nginx_domain(){
   read -rp "请输入你的域名信息(eg: www.paicifang.com):" DOMAIN
   domain_check ${DOMAIN}
-  sed -i "s/serveraddr.com/${DOMAIN}/g" ${nginx_conf}
+  sed -i "s/serveraddr.com/${DOMAIN}/g" ${nginx_conf_dir}/nginx.conf
   judge "Nginx 域名 修改"
 }
 
@@ -277,42 +252,51 @@ function chatgpt_web_install(){
 }
 
 function chatgpt_web_start(){
-  while true
-  do
-    read -rp "请输入OpenAI平台的API Key(!!必填!!eg:sk-xxxxx):" API_KEY
-    if [ -z ${API_KEY} ]; then
-	  print_error "API Key 为空"
-	else
-	  print_ok "API Key"
-	exit 0
-	fi
-  done
-  
-  read -rp "请设置WEB平台的访问密码(可选):" ACC_PWD
-  
-  docker run -d -p 3000:3000 --name chatgpt-web -e OPENAI_API_KEY=${API_KEY} -e CODE=${ACC_PWD} yidadaa/chatgpt-next-web
-  judge "WEB平台启动"
+  if [[ 0 -eq $(docker ps |grep "chatgpt-web" -i -c) ]]; then
+    while true
+    do
+      read -rp "请输入OpenAI平台的API Key(!!必填!!eg:sk-xxxxx):" API_KEY
+      if [ -z ${API_KEY} ]; then
+        print_error "API Key 为空"
+      else
+        print_ok "API Key"
+        break
+      fi
+    done    
+    read -rp "请设置WEB平台的访问密码(可选):" ACC_PWD
+	#启动web平台
+    docker run -d -p 3000:3000 --name chatgpt-web -e OPENAI_API_KEY=${API_KEY} -e CODE=${ACC_PWD} yidadaa/chatgpt-next-web
+    judge "ChatGPT-Web 启动"
+  else
+	print_ok "ChatGPT-Web 已启动"
+  fi
 }
 
 function nginx_install() {
   if [[ 0 -eq $(docker image ls |grep nginx -i -c) ]]; then
     docker pull nginx
     judge "Nginx 安装"
-    # 创建配置文件目录
-    mkdir -p /etc/nginx >/dev/null 2>&1
   else
     print_ok "Nginx 已存在"
   fi
+  # 创建配置文件目录
+  mkdir -p ${nginx_conf_dir} >/dev/null 2>&1
 }
 function configure_nginx() {
-  cd /etc/nginx/ && rm -f nginx.conf && wget -O nginx.conf https://raw.githubusercontent.com/dengyue1985/ChatGPT-Web-OneKey/${github_branch}/config/nginx.conf      
+  cd ${nginx_conf_dir} && rm -f nginx.conf && wget -O nginx.conf https://raw.githubusercontent.com/dengyue1985/ChatGPT-Web-OneKey/${github_branch}/config/nginx.conf      
   modify_nginx_port
   modify_nginx_domain
   judge "Nginx 配置 修改"
-  docker run --name chatgpt-nginx -v ${nginx_conf}:/etc/nginx/nginx.conf -d nginx
+  define_docker_net
+  docker run -d -p ${PORT}:${PORT} --name chatgpt-nginx -v ${nginx_conf_dir}/nginx.conf:/etc/nginx/nginx.conf nginx
   judge "Nginx 启动"
 }
-
+function define_docker_net(){
+  if [[ 0 -eq $(docker network ls |grep chatgpt-net -c) ]]; then
+    docker network create chatgpt-net
+    docker network connect chatgpt-net chatgpt-web
+  fi
+}
 function restart_nginx() {
   docker restart nginx
   judge "Nginx 启动"
