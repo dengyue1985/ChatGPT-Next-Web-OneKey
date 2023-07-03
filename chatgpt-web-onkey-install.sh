@@ -18,7 +18,6 @@ cd "$(
 # 字体颜色配置
 Green="\033[32m"
 Red="\033[31m"
-Yellow="\033[33m"
 Blue="\033[36m"
 Font="\033[0m"
 GreenBG="\033[42;37m"
@@ -27,10 +26,11 @@ OK="${Green}[OK]${Font}"
 ERROR="${Red}[ERROR]${Font}"
 
 # 变量
-script_version="1.0.2"
+script_version="1.0.3"
 github_branch="main"
 nginx_conf_dir="/etc/docker_nginx"
 VERSION=$(echo "${VERSION}" | awk -F "[()]" '{print $2}')
+certs_dir="/root/certs"
 
 function print_ok() {
   echo -e "${OK} ${Blue} $1 ${Font}"
@@ -83,9 +83,6 @@ function system_check() {
     exit 1
   fi
 
-  if [[ $(grep "nogroup" /etc/group) ]]; then
-    cert_group="nogroup"
-  fi
   # 关闭各类防火墙
   systemctl stop firewalld
   systemctl disable firewalld
@@ -135,7 +132,8 @@ function basic_optimization() {
   fi
 }
 function domain_check() {
-  domain_ip=$(curl -sm8 ipget.net/?ip="$1")
+  read -rp "请输入你的域名信息(eg: www.paicifang.com):" DOMAIN
+  domain_ip=$(curl -sm8 ipget.net/?ip="${DOMAIN}")
   print_ok "正在获取 IP 地址信息，请耐心等待"
   wgcfv4_status=$(curl -s4m8 https://www.cloudflare.com/cdn-cgi/trace -k | grep warp | cut -d= -f2)
   wgcfv6_status=$(curl -s6m8 https://www.cloudflare.com/cdn-cgi/trace -k | grep warp | cut -d= -f2)
@@ -219,18 +217,18 @@ function modify_nginx_port() {
     exit 1
   fi
   port_exist_check $PORT
-  sed -i "/listen 80;/c \\\tlisten ${PORT};" ${nginx_conf_dir}/nginx.conf
-  sed -i "/proxy_set_header Host \$host/c \\\t  proxy_set_header Host \$host:${PORT};" ${nginx_conf_dir}/nginx.conf
-  judge "Nginx 端口 修改"
+  if [ $PORT -ne 443 ]; then
+	sed -i "/listen 443 ssl;/c \\\tlisten ${PORT} ssl;" ${nginx_conf_dir}/nginx.conf
+	judge "Nginx 端口修改"
+  else
+	print_ok "Nginx 端口配置"
+  fi
 }
 
 function modify_nginx_domain(){
-  read -rp "请输入你的域名信息(eg: www.paicifang.com):" DOMAIN
-  domain_check ${DOMAIN}
-  sed -i "s/serveraddr.com/${DOMAIN}/g" ${nginx_conf_dir}/nginx.conf
+  sed -i "/server_name serveraddr;/c \\\tserver_name ${DOMAIN};" ${nginx_conf_dir}/nginx.conf
   judge "Nginx 域名 修改"
 }
-
 #docker安装
 function docker_install(){
   if ! command -v docker >/dev/null 2>&1; then
@@ -282,23 +280,69 @@ function nginx_install() {
   # 创建配置文件目录
   mkdir -p ${nginx_conf_dir} >/dev/null 2>&1
 }
+
+function ssl_tools_install(){
+    if [[ "${ID}" == "centos" ]]; then
+        ${INS} socat
+    else
+        ${INS} socat
+    fi
+    judge "安装 SSL 证书生成脚本依赖"
+	
+	if [[ -f "$HOME/.acme.sh/acme.sh" ]]; then
+		print_ok "SSL 证书生成脚本已存在"
+	else
+		curl https://get.acme.sh | sh
+		judge "安装 SSL 证书生成脚本"
+	fi
+}
+function acme() {
+    "$HOME"/.acme.sh/acme.sh --set-default-ca --server letsencrypt		
+    if "$HOME"/.acme.sh/acme.sh --issue --insecure -d "${DOMAIN}" --standalone --force; then
+        print_ok "SSL 证书生成成功"
+        sleep 2
+        mkdir ${certs_dir}
+        if "$HOME"/.acme.sh/acme.sh --install-cert -d "${DOMAIN}" --key-file ${certs_dir}/nginx_ssl.key --fullchain-file ${certs_dir}/nginx_ssl.crt --force; then
+            print_ok "证书配置成功"
+		   chown -R nginx:nginx ${certs_dir}
+        fi
+    else
+        print_error "SSL 证书生成失败"
+        #rm -rf "$HOME/.acme.sh/${DOMAIN}"
+        exit 1
+    fi
+}
+
+function ssl_judge_and_install() {
+    if [[ -f "${certs_dir}/nginx_ssl.key" || -f "${certs_dir}/nginx_ssl.crt" ]]; then
+        echo -e "${Red} 证书文件已存在 ${Font}"
+        echo -e "${GreenBG} 是否删除 [Y/N]? ${Font}"
+        read -r ssl_delete
+        case $ssl_delete in
+			[yY][eE][sS] | [yY])
+				rm -f ${certs_dir}/nginx_ssl.key && rm -f ${certs_dir}/nginx_ssl.crt
+				print_ok "旧证书已删除"
+				ssl_tools_install
+				acme
+			;;
+			*)
+			;;
+        esac
+	else
+		ssl_tools_install
+		acme
+    fi
+}
 function configure_nginx() {
   cd ${nginx_conf_dir} && rm -f nginx.conf && wget -O nginx.conf https://raw.githubusercontent.com/dengyue1985/ChatGPT-Web-OneKey/${github_branch}/config/nginx.conf      
   modify_nginx_port
   modify_nginx_domain
   judge "Nginx 配置 修改"
-  define_docker_net
   docker run -d -p ${PORT}:${PORT} --name chatgpt-nginx -v ${nginx_conf_dir}/nginx.conf:/etc/nginx/nginx.conf nginx
   judge "Nginx 启动"
 }
-function define_docker_net(){
-  if [[ 0 -eq $(docker network ls |grep chatgpt-net -c) ]]; then
-    docker network create chatgpt-net
-    docker network connect chatgpt-net chatgpt-web
-  fi
-}
 function restart_nginx() {
-  docker restart nginx
+  docker restart chatgpt-nginx
   judge "Nginx 启动"
 }
 
@@ -311,9 +355,10 @@ function install_web() {
   chatgpt_web_install
   chatgpt_web_start
   nginx_install
+  domain_check
+  ssl_judge_and_install
   configure_nginx
 }
-
 menu() {
   update_script
   echo -e "\t ChatGPT-Web 安装管理脚本 ${Red}[${script_version}]${Font}"
@@ -342,6 +387,7 @@ menu() {
     restart_nginx
     ;;
   12)
+    domain_check
     modify_nginx_domain
     restart_nginx
     ;;
