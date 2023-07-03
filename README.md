@@ -49,9 +49,9 @@ wget -N --no-check-certificate -q -O chatgpt-web-onkey-install.sh "https://raw.g
 https://billing.raksmart.com/whmcs/aff.php?aff=6162
 
 ### RackNerd
-1G / 1C / 17G SSD / 3T   $10.98/年
-https://my.racknerd.com/aff.php?aff=8533&pid=358
-[更多](https://github.com/dengyue1985/ChatGPT-Web-OneKey/blob/main/README_RN_VPS.md)
+- 1G / 1C / 17G SSD / 3T   $10.98/年 \
+  https://my.racknerd.com/aff.php?aff=8533&pid=358
+- [更多套餐](https://github.com/dengyue1985/ChatGPT-Web-OneKey/blob/main/README_RN_VPS.md)
 
 ### AWS 
 新用户免费使用一年，需要信用卡验证
