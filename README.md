@@ -23,7 +23,7 @@ yum install -y wget
 ## 安装/更新ChatGPT-Next-Web平台
 
 ```
-wget -N --no-check-certificate -q -O chatgpt-web-onkey-install.sh "https://raw.githubusercontent.com/dengyue1985/ChatGPT-Web-onekey/main/chatgpt-web-onkey-install.sh" && chmod +x chatgpt-web-onkey-install.sh && bash chatgpt-web-onkey-install.sh
+wget -N --no-check-certificate -q -O chatgpt-web-onkey-install.sh "https://raw.githubusercontent.com/dengyue1985/ChatGPT-Web-OneKey/main/chatgpt-web-onkey-install.sh" && chmod +x chatgpt-web-onkey-install.sh && bash chatgpt-web-onkey-install.sh
 ```
 
 ## 注意事项
