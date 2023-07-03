@@ -37,7 +37,7 @@ wget -N --no-check-certificate -q -O chatgpt-web-onkey-install.sh "https://raw.g
 * 本 bash 中的各项服务，均采用docker容器进行安装部署
 
 ## ！！特别注意！！
-> https证书生成必须通过80端口验证，如果有其他程序占用，先关闭此程序，脚本安装完成后再重新开启即可
+**https证书生成必须通过80端口验证，如果有其他程序占用，先关闭此程序，脚本安装完成后再重新开启即可**
 
 ## 自有证书
 > 如果你已经拥有了你所使用域名的证书文件，可以脚本执行完成后，将 crt 和 key 文件命名为 nginx_ssl.crt nginx_ssl.key 放在 /root/certs 目录下请注意证书文件权限及证书有效期，自定义证书有效期过期后请自行续签
@@ -49,9 +49,9 @@ wget -N --no-check-certificate -q -O chatgpt-web-onkey-install.sh "https://raw.g
 https://billing.raksmart.com/whmcs/aff.php?aff=6162
 
 ### RackNerd
-- 1G / 1C / 17G SSD / 3T   $10.98/年 \
+- **1G / 1C / 17G SSD / 3T   $10.98/年** \
   https://my.racknerd.com/aff.php?aff=8533&pid=358
-- [更多套餐](https://github.com/dengyue1985/ChatGPT-Web-OneKey/blob/main/README_RN_VPS.md)
+- **[更多套餐](https://github.com/dengyue1985/ChatGPT-Web-OneKey/blob/main/README_RN_VPS.md)**
 
 ### AWS 
 新用户免费使用一年，需要信用卡验证
