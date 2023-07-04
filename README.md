@@ -25,7 +25,8 @@ yum install -y wget
 ```
 wget -N --no-check-certificate -q -O chatgpt-web-onkey-install.sh "https://raw.githubusercontent.com/dengyue1985/ChatGPT-Web-OneKey/main/chatgpt-web-onkey-install.sh" && chmod +x chatgpt-web-onkey-install.sh && bash chatgpt-web-onkey-install.sh
 ```
-
+* 选1，自动安装
+* 保存好访问密码(如果设置)
 ## 注意事项
 
 * 如果你不了解脚本中各项设置的具体含义，除域名外，请使用脚本提供的默认值
