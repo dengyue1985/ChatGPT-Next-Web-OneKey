@@ -2,7 +2,7 @@
 
 ## 准备工作
 * 申请好OpenAI的 API KEY
-* 准备一台国外的虚拟机(系统Ubuntu 18.04+/Centos 7+/Debian 9+/),AWS免费使用一年，方法请自行搜索。
+* 准备一台国外的虚拟机(系统Ubuntu 18.04+/Centos 7+/Debian 9+/),VPS最后有自用推荐。
 * 准备一个域名，并做好解析，也可以直接用IP地址访问。
 * 安装好 wget
 
