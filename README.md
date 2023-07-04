@@ -1,4 +1,4 @@
-# ChatGPT-Next-Web平台，一键安装脚本
+# ChatGPT Web-UI 应用平台，一键安装脚本
 
 ## 准备工作
 * 申请好OpenAI的 API KEY
@@ -56,4 +56,6 @@ https://billing.raksmart.com/whmcs/aff.php?aff=6162
 
 ### AWS 
 新用户免费使用一年，需要信用卡验证
- 
+
+## ChatGPT-Next-Web
+From https://github.com/Yidadaa/ChatGPT-Next-Web
